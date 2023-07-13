@@ -1,0 +1,89 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This cloudbuild file generates all the necessary objects (DAG files, Bigquery
+# tables and views etc) for a Cortex deployment for a Google Ads and CM360.
+
+# Input parameters:
+#   _GCS_LOGS_BUCKET : An existing GCS bucket where build logs will be written.
+
+---
+steps:
+
+  # Validate configs.
+  - name: gcr.io/kittycorn-public/deploy-kittycorn:v2.0
+    entrypoint: "bash"
+    id: 'init_deploy_config'
+    args:
+      - "-c"
+      - |-
+        set -e
+        echo "Initial configuration ${_CONFIG_FILE}:"
+        cat ${_CONFIG_FILE}
+
+        python3 src/common/init_deployment_config.py \
+            --config-file "${_CONFIG_FILE}" \
+            --sub-validator "src"
+
+        echo "Processed configuration:"
+        cat ${_CONFIG_FILE}
+        echo -e "\n--------------------------------"
+
+  # Google Ads section
+
+  - name: 'gcr.io/kittycorn-public/deploy-kittycorn:v2.0'
+    id: googleads_deploy
+    waitFor: ['init_deploy_config']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        deploy_googleads=$(python read_deploy_parameter.py GoogleAds)
+        if [ ${deploy_googleads} = 'True' ]
+        then
+          src/GoogleAds/deploy.sh
+        else
+          echo "== Skipping Google Ads =="
+        fi
+    env:
+      - _CONFIG_FILE=${_CONFIG_FILE}
+      - _GCS_LOGS_BUCKET=${_GCS_LOGS_BUCKET}
+
+  # CM360 section
+
+  - name: 'gcr.io/kittycorn-public/deploy-kittycorn:v2.0'
+    id: cm360_deploy
+    waitFor: ['init_deploy_config']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        deploy_cm360=$(python read_deploy_parameter.py CM360)
+        if [ ${deploy_cm360} = 'True' ]
+        then
+          src/CM360/deploy.sh
+        else
+          echo "== Skipping CM360 =="
+        fi
+    env:
+      - _CONFIG_FILE=${_CONFIG_FILE}
+      - _GCS_LOGS_BUCKET=${_GCS_LOGS_BUCKET}
+
+logsBucket: gs://$_GCS_LOGS_BUCKET
+substitutions:
+  _CONFIG_FILE: config/marketing_config.json
+options:
+  substitution_option: ALLOW_LOOSE

@@ -1,0 +1,45 @@
+{
+    "testData": true,
+    "deployMarketing": true,
+    "turboMode": true,
+    "projectIdSource": "",
+    "projectIdTarget": "",
+    "targetBucket": "",
+    "location": "US",
+    "languages": [
+        "E",
+        "S"
+    ],
+    "currencies": [
+        "USD"
+    ],
+    "k9": {
+        "datasets": {
+            "processing": "K9_PROCESSING",
+            "reporting": "K9_REPORTING"
+        }
+    },
+    "marketing": {
+        "deployGoogleAds": true,
+        "deployCM360": true,
+        "dataflowRegion": "",
+        "GoogleAds": {
+            "deployCDC": true,
+            "lookbackDays": 180,
+            "datasets": {
+                "cdc": "",
+                "raw": "",
+                "reporting": "REPORTING_GoogleAds"
+            }
+        },
+        "CM360": {
+            "deployCDC": true,
+            "dataTransferBucket": "",
+            "datasets": {
+                "cdc": "",
+                "raw": "",
+                "reporting": "REPORTING_CM360"
+            }
+        }
+    }
+}

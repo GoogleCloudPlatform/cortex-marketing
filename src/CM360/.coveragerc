@@ -1,0 +1,11 @@
+[run]
+branch = True
+concurrency = thread
+omit =
+    */setup.py
+    *__init__*
+    *_template.py
+    */locations.py
+    tests/*
+    _generated_dags/
+    */py_libs/*
