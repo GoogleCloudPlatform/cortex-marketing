@@ -18,11 +18,15 @@ Processes and validates Marketing config.json.
 import logging
 from typing import Union
 
+from common.py_libs import resource_validation_helper
 
-def _validate_googleads(googleads: dict) -> None:
+
+def _validate_googleads(cfg: dict) -> None:
     """ Validate GoogleAds specific config attributes. """
 
-    logging.info("Validating Config file for GoogleAds...")
+    logging.info("Validating configuration for GoogleAds...")
+
+    googleads = cfg["marketing"]["GoogleAds"]
 
     missing_googleads_attrs = []
     for attr in ("deployCDC", "datasets", "lookbackDays"):
@@ -45,13 +49,33 @@ def _validate_googleads(googleads: dict) -> None:
             "Config file is missing some GoogleAds datasets attributes "
             f"or has empty value: {missing_datasets_attrs} ")
 
-    logging.info("Config file validated for GoogleAds and is looking good.")
+    source = cfg["projectIdSource"]
+    target = cfg["projectIdTarget"]
+    location = cfg["location"]
+    datasets = [
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["raw"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["cdc"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{target}.{datasets["reporting"]}',
+            False, True, location)
+        ]
+    if not resource_validation_helper.validate_resources([],
+                                                            datasets):
+        raise ValueError("Resource validation failed.")
+
+    logging.info("✅ Config file validated for GoogleAds and is looking good.")
 
 
-def _validate_cm360(cm360: dict) -> None:
+def _validate_cm360(cfg: dict) -> None:
     """ Validate CM360 specific config attributes. """
 
     logging.info("Validating Config file for CM360...")
+
+    cm360 = cfg["marketing"]["CM360"]
 
     missing_cm360_attrs = []
     for attr in ("deployCDC", "dataTransferBucket", "datasets"):
@@ -70,10 +94,31 @@ def _validate_cm360(cm360: dict) -> None:
 
     if missing_datasets_attrs:
         raise ValueError(
-            "Config file is missing some GoogleAds datasets attributes "
+            "Config file is missing some CM360 datasets attributes "
             f"or has empty value: {missing_datasets_attrs} ")
 
-    logging.info("Config file validated for GoogleAds and is looking good.")
+    source = cfg["projectIdSource"]
+    target = cfg["projectIdTarget"]
+    location = cfg["location"]
+    buckets = [resource_validation_helper.BucketConstraints(
+        cm360["dataTransferBucket"], True, location
+    )]
+    datasets = [
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["raw"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["cdc"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{target}.{datasets["reporting"]}',
+            False, True, location)
+        ]
+    if not resource_validation_helper.validate_resources(buckets,
+                                                            datasets):
+        raise ValueError("Resource validation failed.")
+
+    logging.info("✅ Config file validated for GoogleAds and is looking good.")
 
 
 def validate(cfg: dict) -> Union[dict, None]:
@@ -85,14 +130,15 @@ def validate(cfg: dict) -> Union[dict, None]:
     Returns:
         dict: Processed config dictionary.
     """
-    logging.info("Validating 'marketing' config...")
 
-    if not cfg.get("deployMarketing"):
+    if not cfg.get("deployMarketing", False):
+        logging.info("'marketing' is not being deployed. Skipping validation.")
         return cfg
 
+    logging.info("Validating 'marketing' configuration...")
     marketing = cfg.get("marketing")
     if not marketing:
-        logging.error("Missing 'marketing' values in the config file.")
+        logging.error("🛑 Missing 'marketing' values in the config file. 🛑")
         return None
 
     # Marketing Attributes
@@ -103,8 +149,8 @@ def validate(cfg: dict) -> Union[dict, None]:
 
     if missing_marketing_attr:
         logging.error(
-            "Config file is missing some Marketing attributes or "
-            "has empty value: %s", missing_marketing_attr)
+            "🛑 Config file is missing some Marketing attributes or "
+            "has empty value: %s. 🛑", missing_marketing_attr)
         return None
 
     # Google Ads
@@ -113,13 +159,18 @@ def validate(cfg: dict) -> Union[dict, None]:
         googleads = marketing.get("GoogleAds")
         if not googleads:
             logging.error(
-                "Missing 'marketing' 'GoogleAds' attribute in the config file.")
+                "🛑 Missing 'marketing' 'GoogleAds' attribute "
+                "in the config file. 🛑")
             return None
         else:
             try:
-                _validate_googleads(googleads)
+                _validate_googleads(cfg)
+            except ValueError as e:
+                logging.error("🛑 GoogleAds config validation failed: %s 🛑",
+                              str(e))
+                return None
             except Exception as e:  # pylint: disable=broad-except
-                logging.error("googleAds config validation failed.")
+                logging.error("🛑 GoogleAds config validation failed. 🛑")
                 logging.error(e)
                 return None
 
@@ -129,16 +180,29 @@ def validate(cfg: dict) -> Union[dict, None]:
         cm360 = marketing.get("CM360")
         if not cm360:
             logging.error(
-                "Missing 'marketing' 'CM360' attribute in the config file.")
+                "🛑 Missing 'marketing' 'CM360' attribute "
+                "in the config file. 🛑")
             return None
         else:
             try:
-                _validate_cm360(cm360)
+                _validate_cm360(cfg)
+            except ValueError as e:
+                logging.error("🛑 CM360 config validation failed: %s 🛑",
+                              str(e))
+                return None
             except Exception as e:  # pylint: disable=broad-except
-                logging.error("CM360 config validation failed.")
+                logging.error("🛑 CM360 config validation failed. 🛑")
                 logging.error(e)
                 return None
 
-    logging.info("'marketing' config validated successfully. Looks good.")
+    region = marketing["dataflowRegion"].lower()
+    location = cfg["location"].lower()
+    if region != location and not region.startswith(f"{location}-"):
+        logging.error("🛑 Invalid `dataflowRegion`: `%s`. "
+                        "It's expected to be in `%s`. 🛑",
+                        marketing["dataflowRegion"], cfg["location"])
+        return None
+
+    logging.info("✅ 'marketing' config validated successfully. Looks good.")
 
     return cfg

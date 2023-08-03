@@ -17,5 +17,7 @@
 * This view is representing a table from CDC layer in reporting.
 */
 
+#-- ## EXPERIMENTAL
+
 SELECT account_id, state_region, * EXCEPT (account_id, state_region) -- noqa: L034
 FROM `{{ project_id_src }}.{{ marketing_cm360_datasets_cdc }}.match_table_states`

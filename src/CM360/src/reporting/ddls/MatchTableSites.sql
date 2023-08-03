@@ -17,5 +17,7 @@
 * This view is representing a table from CDC layer in reporting.
 */
 
+#-- ## EXPERIMENTAL
+
 SELECT account_id, site_id_cm360, * EXCEPT (account_id, site_id_cm360) -- noqa: L034
 FROM `{{ project_id_src }}.{{ marketing_cm360_datasets_cdc }}.match_table_sites`

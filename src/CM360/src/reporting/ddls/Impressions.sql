@@ -17,5 +17,7 @@
 * This view is representing a table from CDC layer in reporting.
 */
 
+#-- ## EXPERIMENTAL
+
 SELECT impression_id, * EXCEPT (impression_id) -- noqa: L034
 FROM `{{ project_id_src }}.{{ marketing_cm360_datasets_cdc }}.impression`

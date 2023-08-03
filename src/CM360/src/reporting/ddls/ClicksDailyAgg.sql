@@ -17,6 +17,8 @@
 * This query aggregates clicks on daily basis.
 */
 
+#-- ## EXPERIMENTAL
+
 WITH AggregatedClicks AS (
   SELECT
     Clicks.account_id,

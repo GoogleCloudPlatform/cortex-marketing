@@ -15,6 +15,8 @@
 # --  Creating RAW view based ON recordstamp.
 # --  Deduplicating source data based on the latest processing time (recordstamp).
 
+# -- ## EXPERIMENTAL
+
 CREATE OR REPLACE VIEW `{{ project_id_src }}.{{ dataset_raw_landing_marketing_googleads }}.{{ raw_view }}`
 AS (
   SELECT

@@ -17,6 +17,8 @@
 * This view is representing a table from CDC layer in reporting.
 */
 
+#-- ## EXPERIMENTAL
+
 SELECT
   account_id,
   advertiser_id,

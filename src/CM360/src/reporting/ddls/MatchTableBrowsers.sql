@@ -17,5 +17,7 @@
 * This view is representing a table from CDC layer in reporting.
 */
 
+#-- ## EXPERIMENTAL
+
 SELECT account_id, browser_platform_id, * EXCEPT (account_id, browser_platform_id) -- noqa: L034
 FROM `{{ project_id_src }}.{{ marketing_cm360_datasets_cdc }}.match_table_browsers`

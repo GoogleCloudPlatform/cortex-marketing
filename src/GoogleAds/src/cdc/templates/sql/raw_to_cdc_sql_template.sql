@@ -17,6 +17,8 @@
 --  Equal identifier columns indicates that values should be updated.
 --  Otherwise new records are inserted into CDC table.
 
+-- ## EXPERIMENTAL
+
 CREATE TEMP TABLE `{{temp_table}}`
 AS
   SELECT * FROM `{{ source_project_id }}.{{ source_ds }}.{{ view }}`;
@@ -36,4 +38,3 @@ WHEN NOT MATCHED THEN
   VALUES (
     {{ columns }}
   );
-

@@ -17,6 +17,8 @@
 * This query aggregates activities on daily basis.
 */
 
+#-- ## EXPERIMENTAL
+
 WITH AggregatedActivities AS (
   SELECT
     Activities.account_id,

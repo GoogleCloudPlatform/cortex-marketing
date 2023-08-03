@@ -17,6 +17,8 @@
 * This query aggregates impressions on daily basis.
 */
 
+#-- ## EXPERIMENTAL
+
 WITH AggregatedImpressions AS (
   SELECT
     Impressions.account_id,
