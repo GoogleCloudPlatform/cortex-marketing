@@ -82,6 +82,27 @@ steps:
       - _CONFIG_FILE=${_CONFIG_FILE}
       - _GCS_LOGS_BUCKET=${_GCS_LOGS_BUCKET}
 
+  # TikTok section
+
+  - name: 'gcr.io/kittycorn-public/deploy-kittycorn:v2.0'
+    id: tiktok_deploy
+    waitFor: ['init_deploy_config']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        deploy_tiktok=$(python read_deploy_parameter.py TikTok)
+        if [ ${deploy_tiktok} = 'True' ]
+        then
+          src/TikTok/deploy.sh
+        else
+          echo "== Skipping TikTok =="
+        fi
+    env:
+      - _CONFIG_FILE=${_CONFIG_FILE}
+      - _GCS_LOGS_BUCKET=${_GCS_LOGS_BUCKET}
+
 logsBucket: gs://$_GCS_LOGS_BUCKET
 substitutions:
   _CONFIG_FILE: config/marketing_config.json

@@ -121,6 +121,55 @@ def _validate_cm360(cfg: dict) -> None:
     logging.info("✅ Config file validated for GoogleAds and is looking good.")
 
 
+def _validate_tiktok(cfg: dict) -> None:
+    """ Validate TikTok specific config attributes. """
+
+    logging.info("Validating Config file for TikTok...")
+
+    tiktok = cfg["marketing"]["TikTok"]
+
+    missing_tiktok_attrs = []
+    for attr in ("deployCDC", "datasets"):
+        if tiktok.get(attr) is None or tiktok.get(attr) == "":
+            missing_tiktok_attrs.append(attr)
+
+    if missing_tiktok_attrs:
+        raise ValueError(
+            "Config file is missing some TikTok attributes or has empty "
+            f"values: {missing_tiktok_attrs}")
+
+    datasets = tiktok["datasets"]
+    missing_datasets_attrs = []
+    for attr in ("cdc", "raw", "reporting"):
+        if datasets.get(attr) is None or datasets.get(attr) == "":
+            missing_datasets_attrs.append(attr)
+
+    if missing_datasets_attrs:
+        raise ValueError(
+            "Config file is missing some TikTok datasets attributes "
+            f"or has empty value: {missing_datasets_attrs} ")
+
+    source = cfg["projectIdSource"]
+    target = cfg["projectIdTarget"]
+    location = cfg["location"]
+    datasets = [
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["raw"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["cdc"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{target}.{datasets["reporting"]}',
+            False, True, location)
+        ]
+    if not resource_validation_helper.validate_resources([],
+                                                            datasets):
+        raise ValueError("Resource validation failed.")
+
+    logging.info("Config file validated for TikTok and is looking good.")
+
+
 def validate(cfg: dict) -> Union[dict, None]:
     """Validates and processes configuration.
 
@@ -143,7 +192,7 @@ def validate(cfg: dict) -> Union[dict, None]:
 
     # Marketing Attributes
     missing_marketing_attr = []
-    for attr in ("deployGoogleAds", "deployCM360", "dataflowRegion"):
+    for attr in ("deployGoogleAds", "deployCM360", "deployTikTok", "dataflowRegion"):
         if marketing.get(attr) is None or marketing.get(attr) == "":
             missing_marketing_attr.append(attr)
 
@@ -192,6 +241,27 @@ def validate(cfg: dict) -> Union[dict, None]:
                 return None
             except Exception as e:  # pylint: disable=broad-except
                 logging.error("🛑 CM360 config validation failed. 🛑")
+                logging.error(e)
+                return None
+
+    # TikTok
+    deploy_tiktok = marketing.get("deployTikTok")
+    if deploy_tiktok:
+        tiktok = marketing.get("TikTok")
+        if not tiktok:
+            logging.error(
+                "🛑 Missing 'marketing' 'TikTok' attribute "
+                "in the config file. 🛑")
+            return None
+        else:
+            try:
+                _validate_tiktok(cfg)
+            except ValueError as e:
+                logging.error("🛑 TikTok config validation failed: %s 🛑",
+                              str(e))
+                return None
+            except Exception as e:  # pylint: disable=broad-except
+                logging.error("🛑 TikTok config validation failed. 🛑")
                 logging.error(e)
                 return None
 

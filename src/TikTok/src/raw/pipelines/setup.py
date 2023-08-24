@@ -1,7 +1,4 @@
-#!/bin/bash
-
 # Copyright 2023 Google LLC
-
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,6 +10,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Required for multi file Beam pipelines."""
 
-coverage run --source=src -m unittest discover tests -p "test_*.py"
-coverage report
+from setuptools import find_packages
+from setuptools import setup
+
+setup(name="TikTokBeamDependencies",
+      version="0.1",
+      description="Python Apache Beam pipeline dependencies",
+      install_requires=["requests", "google-cloud-secret-manager"],
+      author="Google Cloud Cortex",
+      author_email="cortex-support@google.com",
+      url="https://cloud.google.com/solutions/cortex",
+      packages=find_packages())
