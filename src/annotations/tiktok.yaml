@@ -149,7 +149,7 @@
   description: "Tiktok AdGroup Performance at daily level. This view is built on top of CDC table."
   fields:
     - name: "stat_time_day"
-      description: "Datexxxxxxxxxxxxx"
+      description: "Date"
     - name: "advertiser_id"
       description: "Advertiser ID"
     - name: "campaign_id"
