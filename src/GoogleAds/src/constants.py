@@ -20,7 +20,7 @@ import yaml
 
 _CURRENT_DIR = Path(__file__).resolve().parent
 _CONFIG_PATH = Path(_CURRENT_DIR.parent.parent.parent, "config",
-                    "marketing_config.json")
+                    "config.json")
 
 _RAW_TO_CDC_TABLES_SECTION = "raw_to_cdc_tables"
 

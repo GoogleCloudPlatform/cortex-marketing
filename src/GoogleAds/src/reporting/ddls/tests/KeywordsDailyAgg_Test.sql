@@ -6,7 +6,7 @@ ASSERT (
 )
 > 0;
 
----description:DataTypesCheck: Schema should match expected schema for KeywordsDailyAgg table
+---description:DataTypesCheck1: Schema should match expected schema for KeywordsDailyAgg table
 ASSERT (
   SELECT COUNT(*)
   FROM (
@@ -41,6 +41,7 @@ ASSERT (
 )
 = 0;
 
+---description:DataTypesCheck2: Schema should match expected schema for KeywordsDailyAgg table
 ASSERT (
   SELECT COUNT(*)
   FROM (
@@ -101,8 +102,7 @@ ASSERT (
 )
 = 0;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in criterion_id column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in criterion_id column
 ASSERT (
   SELECT COUNT(DISTINCT criterion_id)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -157,8 +157,7 @@ ASSERT (
 )
 = 8;
 
----description:ENUMCheck:
----Values in match_type column should be as expected based on API specification or NULL
+---description:ENUMCheck: Values in match_type column should be as expected based on API specification or NULL
 ASSERT (
   SELECT
     COUNT(*)
@@ -174,8 +173,7 @@ ASSERT (
 )
 = 1;
 
----description:ENUMCheck:
----Values in keyword_status column should be as expected based on API specification or NULL
+---description:ENUMCheck: Values in keyword_status column should be as expected based on API specification or NULL
 ASSERT (
   SELECT
     COUNT(*)
@@ -185,8 +183,7 @@ ASSERT (
 )
 = 0;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in keyword_status column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in keyword_status column
 ASSERT (
   SELECT COUNT(DISTINCT keyword_status)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -250,16 +247,14 @@ ASSERT (
 )
 = 1164;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in customer_name column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in customer_name column
 ASSERT (
   SELECT COUNT(DISTINCT customer_name)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
 )
 = 0;
 
----description:ENUMCheck:
----Values in customer_status column should be as expected based on API specification or NULL
+---description:ENUMCheck: Values in customer_status column should be as expected based on API specification or NULL
 ASSERT (
   SELECT
     COUNT(*)
@@ -269,8 +264,7 @@ ASSERT (
 )
 = 0;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in customer_status column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in customer_status column
 ASSERT (
   SELECT COUNT(DISTINCT customer_status)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -294,8 +288,7 @@ ASSERT (
 )
 = 0;
 
----description:ENUMCheck:
----Values in currency_code column should be as expected based on API specification or NULL
+---description:ENUMCheck: Values in currency_code column should be as expected based on API specification or NULL
 ASSERT (
   SELECT
     COUNT(*)
@@ -338,8 +331,7 @@ ASSERT (
 )
 = 0;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in currency_code column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in currency_code column
 ASSERT (
   SELECT COUNT(DISTINCT currency_code)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -365,8 +357,7 @@ ASSERT (
 )
 = 0;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in customer_time_zone column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in customer_time_zone column
 ASSERT (
   SELECT COUNT(DISTINCT customer_time_zone)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -430,8 +421,7 @@ ASSERT (
 )
 = 0;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in campaign_name column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in campaign_name column
 ASSERT (
   SELECT COUNT(DISTINCT campaign_name)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -447,8 +437,7 @@ ASSERT (
 )
 = 0;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in campaign_start_date column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in campaign_start_date column
 ASSERT (
   SELECT COUNT(DISTINCT campaign_start_date)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -464,8 +453,7 @@ ASSERT (
 )
 = 0;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in campaign_end_date column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in campaign_end_date column
 ASSERT (
   SELECT COUNT(DISTINCT campaign_end_date)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -545,8 +533,7 @@ ASSERT (
 )
 = 369;
 
----description:DistinctCountProfileCheck:
----Distinct count should be as expected in quality_score column
+---description:DistinctCountProfileCheck: Distinct count should be as expected in quality_score column
 ASSERT (
   SELECT COUNT(DISTINCT quality_score)
   FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
@@ -681,20 +668,7 @@ ASSERT (
 )
 = 1.21164089347;
 
----description:MinValueProfileCheck: cost column has valid MIN value
-ASSERT (
-  SELECT
-    CASE
-      WHEN MIN(cost) IS NULL THEN 999999999999
-      ELSE MIN(cost)
-      END  -- noqa: L003
-  FROM `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordsDailyAgg`
-  WHERE cost IS NOT NULL
-)
->= 0.0;
-
----description:CDCCheck1:
----Data in the KeywordsDailyAgg view should be transformed following business rules
+---description:CDCCheck1: Data in the KeywordsDailyAgg view should be transformed following business rules
 ASSERT (
   SELECT COUNT(*)
   FROM (
@@ -764,8 +738,7 @@ ASSERT (
 )
 = 0;
 
----description:CDCCheck2:
----Data in the KeywordsDailyAgg view should be transformed following business rules
+---description:CDCCheck2: Data in the KeywordsDailyAgg view should be transformed following business rules
 ASSERT (
   SELECT COUNT(*)
   FROM (

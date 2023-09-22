@@ -20,11 +20,10 @@
 
 ---
 steps:
-
   # Validate configs.
   - name: gcr.io/kittycorn-public/deploy-kittycorn:v2.0
     entrypoint: "bash"
-    id: 'init_deploy_config'
+    id: "init_deploy_config"
     args:
       - "-c"
       - |-
@@ -42,9 +41,9 @@ steps:
 
   # Google Ads section
 
-  - name: 'gcr.io/kittycorn-public/deploy-kittycorn:v2.0'
+  - name: "gcr.io/kittycorn-public/deploy-kittycorn:v2.0"
     id: googleads_deploy
-    waitFor: ['init_deploy_config']
+    waitFor: ["init_deploy_config"]
     entrypoint: bash
     args:
       - -c
@@ -63,9 +62,9 @@ steps:
 
   # CM360 section
 
-  - name: 'gcr.io/kittycorn-public/deploy-kittycorn:v2.0'
+  - name: "gcr.io/kittycorn-public/deploy-kittycorn:v2.0"
     id: cm360_deploy
-    waitFor: ['init_deploy_config']
+    waitFor: ["init_deploy_config"]
     entrypoint: bash
     args:
       - -c
@@ -84,9 +83,9 @@ steps:
 
   # TikTok section
 
-  - name: 'gcr.io/kittycorn-public/deploy-kittycorn:v2.0'
+  - name: "gcr.io/kittycorn-public/deploy-kittycorn:v2.0"
     id: tiktok_deploy
-    waitFor: ['init_deploy_config']
+    waitFor: ["init_deploy_config"]
     entrypoint: bash
     args:
       - -c
@@ -103,8 +102,41 @@ steps:
       - _CONFIG_FILE=${_CONFIG_FILE}
       - _GCS_LOGS_BUCKET=${_GCS_LOGS_BUCKET}
 
+  # LiveRamp section
+
+  - name: "gcr.io/kittycorn-public/deploy-kittycorn:v2.0"
+    id: liveramp_deploy
+    waitFor: ["init_deploy_config"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        deploy_liveramp=$(python read_deploy_parameter.py LiveRamp)
+        if [ ${deploy_liveramp} = 'True' ]
+        then
+          src/LiveRamp/deploy.sh
+        else
+          echo "== Skipping LiveRamp =="
+        fi
+    env:
+      - _CONFIG_FILE=${_CONFIG_FILE}
+      - _GCS_LOGS_BUCKET=${_GCS_LOGS_BUCKET}
+
+  # Annotations
+
+  - name: "gcr.io/kittycorn-public/deploy-kittycorn:v2.0"
+    id: annotations
+    waitFor:
+      ["googleads_deploy", "cm360_deploy", "tiktok_deploy", "liveramp_deploy"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        python3 src/common/annotations_loader.py --annotations-directory "src/annotations"
+
 logsBucket: gs://$_GCS_LOGS_BUCKET
 substitutions:
-  _CONFIG_FILE: config/marketing_config.json
+  _CONFIG_FILE: config/config.json
 options:
   substitution_option: ALLOW_LOOSE

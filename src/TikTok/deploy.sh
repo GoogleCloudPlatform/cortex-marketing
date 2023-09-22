@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Run by Marketing cloudbuild pipeline to produce artifacts for TikTok submodule.
+# This script generates all necessary DAG files and BQ objects for TikTok.
 
 set -e
 
@@ -25,15 +25,17 @@ _TGT_BUCKET=$(jq -r .targetBucket ${_CONFIG_FILE})
 
 if [ ${_DEPLOY_CDC} = "true" ]
 then
-    echo "Generating TikTok Raw layer files."
+    echo "Deploying TikTok raw layer..."
     python src/TikTok/src/raw/deploy_raw_layer.py \
         --pipeline-temp-bucket gs://${_TGT_BUCKET}/_pipeline_temp/ \
         --pipeline-staging-bucket gs://${_TGT_BUCKET}/_pipeline_staging/
-    echo "✅ Generated TikTok Raw layer files."
+    echo "✅ TikTok raw layer deployed successfully."
+    echo "========================================"
 
-    echo "Generating TikTok CDC layer files."
+    echo "Deploying TikTok CDC layer..."
     python src/TikTok/src/cdc/deploy_cdc_layer.py
-    echo "✅ Generated TikTok CDC layer files."
+    echo "✅ TikTok CDC layer deployed successfully."
+    echo "========================================"
 
     # Copy generated files to Target GCS bucket
     if [ ! -z "$(shopt -s nullglob dotglob; echo src/TikTok/_generated_dags/*)" ]
@@ -42,13 +44,14 @@ then
         gsutil -m cp -r src/TikTok/_generated_dags/* gs://${_TGT_BUCKET}/dags/tiktok/
         echo "✅ TikTok artifacts have been copied."
     else
-        echo "🔪🔪🔪No files found under _generated_dag folder or the folder does not exist. Skipping copy.🔪🔪🔪"
+        echo "❗ No file generated. Nothing to copy."
     fi
 else
     echo "== Skipping RAW and CDC layers for TikTok =="
 fi
 
 # Deploy reporting layer
+echo "Deploying TikTok Reporting layer..."
 src/common/materializer/deploy.sh \
     --gcs_logs_bucket ${_GCS_LOGS_BUCKET} \
     --gcs_tgt_bucket ${_TGT_BUCKET} \
@@ -56,3 +59,6 @@ src/common/materializer/deploy.sh \
     --config_file ${_CONFIG_FILE} \
     --target_type "Reporting" \
     --materializer_settings_file src/TikTok/config/reporting_settings.yaml
+
+echo "✅ TikTok Reporting layer deployed successfully."
+echo "==================================================="

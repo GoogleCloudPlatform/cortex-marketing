@@ -170,6 +170,48 @@ def _validate_tiktok(cfg: dict) -> None:
     logging.info("Config file validated for TikTok and is looking good.")
 
 
+def _validate_liveramp(cfg: dict) -> None:
+    """ Validate LiveRamp specific config attributes. """
+
+    logging.info("Validating Config file for LiveRamp...")
+
+    liveramp = cfg["marketing"]["LiveRamp"]
+
+    missing_liveramp_attrs = []
+    attr = "datasets"
+    if liveramp.get(attr) is None or liveramp.get(attr) == "":
+        missing_liveramp_attrs.append(attr)
+
+    if missing_liveramp_attrs:
+        raise ValueError(
+            "Config file is missing some LiveRamp attributes or has empty "
+            f"values: {missing_liveramp_attrs}")
+
+    datasets = liveramp["datasets"]
+    missing_datasets_attrs = []
+    attr = "cdc"
+    if datasets.get(attr) is None or datasets.get(attr) == "":
+        missing_datasets_attrs.append(attr)
+
+    if missing_datasets_attrs:
+        raise ValueError(
+            "Config file is missing some LiveRamp datasets attributes "
+            f"or has empty value: {missing_datasets_attrs} ")
+
+    source = cfg["projectIdSource"]
+    location = cfg["location"]
+    datasets = [
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["cdc"]}',
+            True, True, location)
+        ]
+    if not resource_validation_helper.validate_resources([],
+                                                            datasets):
+        raise ValueError("Resource validation failed.")
+
+    logging.info("Config file validated for LiveRamp and is looking good.")
+
+
 def validate(cfg: dict) -> Union[dict, None]:
     """Validates and processes configuration.
 
@@ -192,7 +234,8 @@ def validate(cfg: dict) -> Union[dict, None]:
 
     # Marketing Attributes
     missing_marketing_attr = []
-    for attr in ("deployGoogleAds", "deployCM360", "deployTikTok", "dataflowRegion"):
+    for attr in ("deployGoogleAds", "deployCM360", "deployTikTok",
+                 "deployLiveRamp", "dataflowRegion"):
         if marketing.get(attr) is None or marketing.get(attr) == "":
             missing_marketing_attr.append(attr)
 
@@ -262,6 +305,27 @@ def validate(cfg: dict) -> Union[dict, None]:
                 return None
             except Exception as e:  # pylint: disable=broad-except
                 logging.error("🛑 TikTok config validation failed. 🛑")
+                logging.error(e)
+                return None
+
+    # LiveRamp
+    deploy_liveramp = marketing.get("deployLiveRamp")
+    if deploy_liveramp:
+        liveramp = marketing.get("LiveRamp")
+        if not liveramp:
+            logging.error(
+                "🛑 Missing 'marketing' 'LiveRamp' attribute "
+                "in the config file. 🛑")
+            return None
+        else:
+            try:
+                _validate_liveramp(cfg)
+            except ValueError as e:
+                logging.error("🛑 LiveRamp config validation failed: %s 🛑",
+                              str(e))
+                return None
+            except Exception as e:  # pylint: disable=broad-except
+                logging.error("🛑 LiveRamp config validation failed. 🛑")
                 logging.error(e)
                 return None
 

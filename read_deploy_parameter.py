@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Reads deploy parameter for specified data provider from marketing_config.json."""
+"""Reads deploy parameter for specified data provider from config.json."""
 
 import json
 import logging
@@ -23,14 +23,14 @@ def main():
     deploy_datasource = "deploy" + sys.argv[1]
 
     try:
-        with open("config/marketing_config.json", encoding="utf-8") as cf:
+        with open("config/config.json", encoding="utf-8") as cf:
             config = json.load(cf)
         print(config["marketing"][deploy_datasource])
     except FileNotFoundError:
-        logging.error("marketing_config.json is not found")
+        logging.error("config.json is not found")
         sys.exit(1)
     except KeyError as key:
-        logging.error("%s parameter is not found in marketing_config.json", key)
+        logging.error("%s parameter is not found in config.json", key)
         sys.exit(1)
 
 

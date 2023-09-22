@@ -24,7 +24,7 @@ from common.py_libs.configs import load_config_file
 
 _CURRENT_DIR = Path(__file__).resolve().parent
 _CONFIG_PATH = Path(_CURRENT_DIR.parent.parent.parent, "config",
-                    "marketing_config.json")
+                    "config.json")
 
 _SETTINGS_FILE = Path(_CURRENT_DIR.parent, "config", "ingestion_settings.yaml")
 
