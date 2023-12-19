@@ -22,7 +22,7 @@ from airflow.providers.apache.beam.operators.beam import BeamRunPythonPipelineOp
 from airflow.providers.google.cloud.operators.dataflow import DataflowConfiguration
 from airflow.version import version as AIRFLOW_VERSION
 
-_API_VERSION = "v13"
+_API_VERSION = "v15"
 _TABLE_NAME = "${table_name}"
 _DATASET_ID = "${raw_dataset}"
 _PROJECT_ID = "${project_id}"

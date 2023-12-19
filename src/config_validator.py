@@ -211,7 +211,6 @@ def _validate_liveramp(cfg: dict) -> None:
 
     logging.info("Config file validated for LiveRamp and is looking good.")
 
-
 def validate(cfg: dict) -> Union[dict, None]:
     """Validates and processes configuration.
 

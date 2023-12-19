@@ -25,17 +25,25 @@ import uuid
 
 from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
 from google.cloud import bigquery
-from liveramp.pipelines.helpers_bq import create_temporary_tables
-from liveramp.pipelines.helpers_bq import delete_temporary_tables
-from liveramp.pipelines.helpers_bq import get_batch_of_rows_of_current_segment
-from liveramp.pipelines.helpers_bq import get_segments_from_bq
-from liveramp.pipelines.helpers_bq import insert_batch_into_request_input
-from liveramp.pipelines.helpers_bq import insert_response_into_request_output
-from liveramp.pipelines.helpers_bq import update_input_and_output_tables
-from liveramp.pipelines.helpers_liveramp import extract_ramp_ids_from_response
-from liveramp.pipelines.helpers_liveramp import fetch_rampids_for_hashed_pii_details
-from liveramp.pipelines.helpers_liveramp import get_token
-from liveramp.pipelines.helpers_liveramp import validate_search_strings
+
+import sys
+import pathlib
+
+__this_dir = pathlib.Path(__file__).parent.absolute()
+sys.path.append(str(__this_dir))
+
+# pylint: disable=wrong-import-position
+from helpers_bq import create_temporary_tables
+from helpers_bq import delete_temporary_tables
+from helpers_bq import get_batch_of_rows_of_current_segment
+from helpers_bq import get_segments_from_bq
+from helpers_bq import insert_batch_into_request_input
+from helpers_bq import insert_response_into_request_output
+from helpers_bq import update_input_and_output_tables
+from helpers_liveramp import extract_ramp_ids_from_response
+from helpers_liveramp import fetch_rampids_for_hashed_pii_details
+from helpers_liveramp import get_token
+from helpers_liveramp import validate_search_strings
 
 # LiveRamp API expects a minimum number of records in a given call.
 _LIVERAMP_API_MATCH_MIN_QUOTA = 100
