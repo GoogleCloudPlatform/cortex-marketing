@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,9 +37,9 @@ _PROJECT_ID = "${project_id}"
 _IDENTIFIER = f"liveramp_{_PROJECT_ID}_{_DATASET_ID}_extract_to_bq"
 _START_DATE = datetime.fromisoformat("${start_date}")
 
-liveramp_to_bigquery_module = importlib.import_module(_DEPENDENCIES_LIB_PATH)
+liveramp_to_bq_module = importlib.import_module(_DEPENDENCIES_LIB_PATH)
 
-extract_liveramp_ids = liveramp_to_bigquery_module.extract_ramp_ids_from_liveramp
+extract_liveramp_ids = liveramp_to_bq_module.extract_ramp_ids_from_liveramp
 
 dag_config_path = os.path.join(_THIS_DIR, "pipelines/config.ini")
 config = configparser.ConfigParser()

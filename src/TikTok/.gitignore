@@ -1,6 +1,0 @@
-_generated_dags/
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-.pytest_cache
-.coverag*

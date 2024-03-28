@@ -46,6 +46,8 @@ def generate_schema(schema_file: Path, bq_type: str) -> dict:
                     current[part] = {}
                 current = current[part]
             current[name_parts[-1]] = data_type
+        if 'recordstamp' not in schema and bq_type == 'table':
+            schema['recordstamp'] = 'TIMESTAMP'
         return schema
 
 

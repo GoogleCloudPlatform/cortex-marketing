@@ -25,6 +25,7 @@ from airflow.version import version as AIRFLOW_VERSION
 _TABLE_NAME = "${table_name}"
 _DATASET_ID = "${raw_dataset}"
 _PROJECT_ID = "${project_id}"
+_GCP_CONN_ID = "tiktok_raw_dataflow"
 _THIS_DIR = Path(__file__).resolve().parent
 
 beam_pipeline_params = {
@@ -65,14 +66,16 @@ if AIRFLOW_VERSION.startswith("1."):
             py_file=str(Path(_THIS_DIR, "${pipeline_file}")),
             pipeline_options=beam_pipeline_params,
             # Compatible with Airflow v1 and v2.
-            py_requirements=["apache-beam[gcp]==2.44.0"],
-            py_system_site_packages=True,
+            py_requirements=["apache-beam[gcp]==2.53.0",
+                             "google-cloud-secret-manager==2.17.0"],
+            py_system_site_packages=False,
+            gcp_conn_id=_GCP_CONN_ID,
             dataflow_config=DataflowConfiguration(
                 project_id="${project_id}",
                 location="${project_region}",
                 wait_until_finished=True,
                 poll_sleep=60,
-                gcp_conn_id="tiktok_raw_dataflow",
+                gcp_conn_id=_GCP_CONN_ID,
                 job_name=_IDENTIFIER.lower()),
         )
 
@@ -103,14 +106,16 @@ else:
             pipeline_options=beam_pipeline_params,
             # Compatible with Airflow v1 and v2.
             # In case of Airflow 2 it is upgradeable.
-            py_requirements=["apache-beam[gcp]==2.44.0"],
-            py_system_site_packages=True,
+            py_requirements=["apache-beam[gcp]==2.53.0",
+                             "google-cloud-secret-manager==2.17.0"],
+            py_system_site_packages=False,
+            gcp_conn_id=_GCP_CONN_ID,
             dataflow_config=DataflowConfiguration(
                 project_id="${project_id}",
                 location="${project_region}",
                 wait_until_finished=True,
                 poll_sleep=60,
-                gcp_conn_id="tiktok_raw_dataflow",
+                gcp_conn_id=_GCP_CONN_ID,
                 job_name=_IDENTIFIER.lower()),
         )
 

@@ -31,6 +31,8 @@
         "deployCM360": true,
         "deployTikTok": true,
         "deployLiveRamp": true,
+        "deployMeta": true,
+        "deploySFMC": true,
         "dataflowRegion": "",
         "GoogleAds": {
             "deployCDC": true,
@@ -61,6 +63,23 @@
         "LiveRamp": {
             "datasets": {
                 "cdc": ""
+            }
+        },
+        "Meta": {
+            "deployCDC": true,
+            "datasets": {
+                "cdc": "",
+                "raw": "",
+                "reporting": "REPORTING_Meta"
+            }
+        },
+        "SFMC": {
+            "deployCDC": true,
+            "fileTransferBucket": "",
+            "datasets": {
+                "cdc": "",
+                "raw": "",
+                "reporting": "REPORTING_SFMC"
             }
         }
     }

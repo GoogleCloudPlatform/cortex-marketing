@@ -58,7 +58,7 @@ def _generate_dag_from_template(template_file: Path,
         generation_target_directory (Path): Directory where files are generated.
         table_name (str): The table name which is loaded by this dag.
     """
-    output_dag_py_file_name = (f"{RAW_PROJECT}_{RAW_DATASET}_"
+    output_dag_py_file_name = (f"{CDC_PROJECT}_{CDC_DATASET}_"
                                f"raw_to_cdc_{table_name.replace('.', '_')}.py")
 
     output_dag_py_file = Path(generation_target_directory,

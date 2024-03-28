@@ -26,41 +26,49 @@ _PROJECT_ID = "${project_id}"
 _DATASET_ID = "${cdc_dataset}"
 _TABLE_NAME = "${table_name}"
 
-_START_DATETIME = datetime.fromisoformat("${start_datetime}")
+_START_DATE = datetime.fromisoformat("${start_date}")
 _IDENTIFIER = f"googleads_{_PROJECT_ID}_{_DATASET_ID}_raw_to_cdc_{_TABLE_NAME}"
 
-with DAG(dag_id=_IDENTIFIER,
-         description=f"Extract {_TABLE_NAME} from raw to cdc",
-         schedule=_DAG_SCHEDULE,
-         start_date=_START_DATETIME,
-         dagrun_timeout=timedelta(minutes=60),
-         tags=["GoogleAds", "cdc"],
-         catchup=False,
-         max_active_runs=1) as dag:
+_DAG_OPTIONS = {
+    "dag_id": _IDENTIFIER,
+    "description": f"Extract {_TABLE_NAME} from raw to cdc",
+    "start_date": _START_DATE,
+    "dagrun_timeout": timedelta(minutes=60),
+    "tags": ["GoogleAds", "cdc"],
+    "catchup": False,
+    "max_active_runs": 1
+}
 
-    # Import here to avoid slow DAG imports in Airflow.
-    if AIRFLOW_VERSION.startswith("1."):
-        from airflow.operators.dummy_operator import DummyOperator as EmptyOperator
-    else:
+_START_TASK_OPTIONS = {
+    "task_id": "start",
+    "depends_on_past": True,
+    "wait_for_downstream": True
+}
+
+_BQ_OPTIONS = {
+    "task_id": _IDENTIFIER,
+    "sql": _CDC_SQL_PATH,
+    "use_legacy_sql": False,
+    "retries": 0
+}
+
+if AIRFLOW_VERSION.startswith("1."):
+    with DAG(**_DAG_OPTIONS, schedule_interval=_DAG_SCHEDULE) as dag:
+
+        from airflow.operators.dummy_operator import DummyOperator
+
+        start_task = DummyOperator(**_START_TASK_OPTIONS)
+        copy_raw_to_cdc = BigQueryOperator(**_BQ_OPTIONS,
+                                           bigquery_conn_id="googleads_cdc_bq")
+        stop_task = DummyOperator(task_id="stop")
+else:
+    with DAG(**_DAG_OPTIONS, schedule=_DAG_SCHEDULE) as dag:
+
         from airflow.operators.empty import EmptyOperator
 
-    start_task = EmptyOperator(task_id="start",
-                               depends_on_past=True,
-                               wait_for_downstream=True)
-
-    if AIRFLOW_VERSION.startswith("1."):
-        copy_raw_to_cdc = BigQueryOperator(task_id=_IDENTIFIER,
-                                           sql=_CDC_SQL_PATH,
-                                           bigquery_conn_id="googleads_cdc_bq",
-                                           use_legacy_sql=False,
-                                           retries=0)
-    else:
-        copy_raw_to_cdc = BigQueryOperator(task_id=_IDENTIFIER,
-                                           sql=_CDC_SQL_PATH,
-                                           gcp_conn_id="googleads_cdc_bq",
-                                           use_legacy_sql=False,
-                                           retries=0)
-
-    stop_task = EmptyOperator(task_id="stop")
+        start_task = EmptyOperator(**_START_TASK_OPTIONS)
+        copy_raw_to_cdc = BigQueryOperator(**_BQ_OPTIONS,
+                                           gcp_conn_id="googleads_cdc_bq")
+        stop_task = EmptyOperator(task_id="stop")
 
 start_task >> copy_raw_to_cdc >> stop_task  # pylint: disable=pointless-statement

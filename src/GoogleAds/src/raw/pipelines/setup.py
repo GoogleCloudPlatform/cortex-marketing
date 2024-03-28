@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -19,9 +19,8 @@ setup(name="GoogleAdsBeamDependencies",
       version="0.1",
       description="Python Apache Beam pipeline dependencies",
       install_requires=[
-          "apache-beam[gcp]==2.45.0", "google-ads-megalista==18.0.2",
-          "protobuf==3.20.3", "python-dateutil>=2.8.0,<3.0.0",
-          "google-cloud-secret-manager"
+          "google-ads==23.0.0",
+          "google-cloud-secret-manager==2.16.3"
       ],
       author="Google Cloud Cortex",
       author_email="cortex-support@google.com",

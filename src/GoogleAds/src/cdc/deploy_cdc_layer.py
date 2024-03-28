@@ -128,7 +128,7 @@ def main():
     _create_output_dir_structure()
     _create_sql_output_dir_structure()
 
-    now_iso = datetime.datetime.utcnow().isoformat()
+    now_date = datetime.datetime.utcnow().date()
     client = Client(project=CDC_PROJECT)
 
     if not "raw_to_cdc_tables" in SETTINGS:
@@ -199,7 +199,7 @@ def main():
             "table_name": table_name,
             "cdc_dataset": CDC_DATASET,
             "project_id": CDC_PROJECT,
-            "start_datetime": now_iso,
+            "start_date": now_date,
         }
         _generate_dag_from_template(
             template_file=DAG_TEMPLATE_PATH,

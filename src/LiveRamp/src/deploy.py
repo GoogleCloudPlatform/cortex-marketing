@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ import shutil
 import sys
 
 from google.cloud.bigquery import Client
-from google.cloud.exceptions import Conflict
 
+from common.py_libs.bq_helper import table_exists
 from common.py_libs.dag_generator import generate_file_from_template
 from common.py_libs.jinja import apply_jinja_params_dict_to_file
 from src.constants import DAG_TEMPLATE_FILE
@@ -95,7 +95,11 @@ def main(parsed_args):
             "marketing_liveramp_datasets_cdc": DATASET,
         }
 
-        try:
+        full_table_name = f"{PROJECT}.{DATASET}.{sql_file.stem}"
+
+        if table_exists(bq_client=bq_client, full_table_name=full_table_name):
+            logging.warning("❗ Table already exists.")
+        else:
             logging.info("Processing table %s", sql_file)
 
             sql_code = apply_jinja_params_dict_to_file(input_file=sql_file,
@@ -112,9 +116,6 @@ def main(parsed_args):
                           sql_file)
 
             logging.info("Table processed successfully.")
-
-        except Conflict:
-            logging.warning("❗ Table already exists. Skipping it.")
 
     py_subs = {
         "project_id": PROJECT,

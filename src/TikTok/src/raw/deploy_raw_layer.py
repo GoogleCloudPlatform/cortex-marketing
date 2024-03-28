@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ import shutil
 import sys
 
 from google.cloud.bigquery import Client
-from google.cloud.exceptions import Conflict
 
+from common.py_libs.bq_helper import table_exists
 from common.py_libs.dag_generator import generate_file_from_template
 from src.constants import PROJECT_REGION
 from src.constants import RAW_DATASET
@@ -139,15 +139,19 @@ def main(parsed_args):
         logging.debug("Processing table %s", table_name)
 
         table_mapping_path = Path(SCHEMA_DIR, schema_file)
+        full_table_name = f"{RAW_PROJECT}.{RAW_DATASET}.{table_name}"
 
-        logging.info("Creating schema...")
+        if table_exists(bq_client=client, full_table_name=full_table_name):
+            logging.warning("❗ Table already exists.")
 
-        table_schema = create_bq_schema(mapping_file=table_mapping_path,
-                                        layer="raw")
+        else:
+            logging.info("Creating schema...")
 
-        logging.info("Creating RAW table...")
+            table_schema = create_bq_schema(mapping_file=table_mapping_path,
+                                            layer="raw")
 
-        try:
+            logging.info("Creating RAW table...")
+
             create_table(client=client,
                          schema=table_schema,
                          project=RAW_PROJECT,
@@ -155,12 +159,9 @@ def main(parsed_args):
                          table_name=table_name,
                          partition_details=partition_details,
                          cluster_details=cluster_details)
-        except Conflict:
-            logging.warning("Table already exists. Further steps skipped.")
-            continue
 
-        logging.info("Table %s.%s.%s has been created.", RAW_PROJECT,
-                     RAW_DATASET, table_name)
+            logging.info("Table %s.%s.%s has been created.", RAW_PROJECT,
+                         RAW_DATASET, table_name)
 
         subs = {
             "project_id":

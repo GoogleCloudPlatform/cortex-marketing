@@ -26,6 +26,7 @@ from airflow.version import version as AIRFLOW_VERSION
 _PROJECT_ID = "${project_id}"
 _DATASET_ID = "${raw_dataset}"
 _TABLE_NAME = "${table_name}"
+_GCP_CONN_ID = "cm360_raw_dataflow"
 
 _THIS_DIR = Path(__file__).resolve().parent
 
@@ -75,13 +76,15 @@ if AIRFLOW_VERSION.startswith("1."):
             runner="DataflowRunner",
             py_file=str(Path(_THIS_DIR, "${pipeline_file}")),
             pipeline_options=beam_pipeline_params,
-            py_system_site_packages=True,
+            py_requirements=["apache-beam[gcp]==2.53.0"],
+            py_system_site_packages=False,
+            gcp_conn_id = _GCP_CONN_ID,
             dataflow_config=DataflowConfiguration(
                 project_id="${project_id}",
                 location="${project_region}",
                 wait_until_finished=True,
                 poll_sleep=60,
-                gcp_conn_id="cm360_raw_dataflow",
+                gcp_conn_id=_GCP_CONN_ID,
                 job_name=_IDENTIFIER.lower()),
         )
     stop_task = DummyOperator(task_id="stop")
@@ -109,13 +112,15 @@ else:
             runner="DataflowRunner",
             py_file=str(Path(_THIS_DIR, "${pipeline_file}")),
             pipeline_options=beam_pipeline_params,
-            py_system_site_packages=True,
+            py_requirements=["apache-beam[gcp]==2.53.0"],
+            py_system_site_packages=False,
+            gcp_conn_id = _GCP_CONN_ID,
             dataflow_config=DataflowConfiguration(
                 project_id="${project_id}",
                 location="${project_region}",
                 wait_until_finished=True,
                 poll_sleep=60,
-                gcp_conn_id="cm360_raw_dataflow",
+                gcp_conn_id=_GCP_CONN_ID,
                 job_name=_IDENTIFIER.lower()),
         )
         stop_task = EmptyOperator(task_id="stop")

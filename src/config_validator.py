@@ -211,6 +211,107 @@ def _validate_liveramp(cfg: dict) -> None:
 
     logging.info("Config file validated for LiveRamp and is looking good.")
 
+
+def _validate_meta(cfg: dict) -> None:
+    """ Validate Meta specific config attributes. """
+
+    logging.info("Validating Config file for Meta...")
+
+    meta = cfg["marketing"]["Meta"]
+
+    missing_meta_attrs = []
+    for attr in ("deployCDC", "datasets"):
+        if meta.get(attr) is None or meta.get(attr) == "":
+            missing_meta_attrs.append(attr)
+
+    if missing_meta_attrs:
+        raise ValueError(
+            "Config file is missing some Meta attributes or has empty "
+            f"values: {missing_meta_attrs}")
+
+    datasets = meta["datasets"]
+    missing_datasets_attrs = []
+    for attr in ("cdc", "raw", "reporting"):
+        if datasets.get(attr) is None or datasets.get(attr) == "":
+            missing_datasets_attrs.append(attr)
+
+    if missing_datasets_attrs:
+        raise ValueError(
+            "Config file is missing some Meta datasets attributes "
+            f"or has empty value: {missing_datasets_attrs} ")
+
+    source = cfg["projectIdSource"]
+    target = cfg["projectIdTarget"]
+    location = cfg["location"]
+    datasets = [
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["raw"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["cdc"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{target}.{datasets["reporting"]}',
+            False, True, location)
+        ]
+    if not resource_validation_helper.validate_resources([],
+                                                            datasets):
+        raise ValueError("Resource validation failed.")
+
+    logging.info("Config file validated for Meta and is looking good.")
+
+
+def _validate_sfmc(cfg: dict) -> None:
+    """ Validate SFMC specific config attributes. """
+
+    logging.info("Validating Config file for SFMC...")
+
+    sfmc = cfg["marketing"]["SFMC"]
+
+    missing_sfmc_attrs = []
+    for attr in ("deployCDC", "fileTransferBucket", "datasets"):
+        if sfmc.get(attr) is None or sfmc.get(attr) == "":
+            missing_sfmc_attrs.append(attr)
+
+    if missing_sfmc_attrs:
+        raise ValueError(
+            "Config file is missing some SFMC attributes or has empty "
+            f"values: {missing_sfmc_attrs}")
+
+    datasets = sfmc["datasets"]
+    missing_datasets_attrs = []
+    for attr in ("cdc", "raw", "reporting"):
+        if datasets.get(attr) is None or datasets.get(attr) == "":
+            missing_datasets_attrs.append(attr)
+
+    if missing_datasets_attrs:
+        raise ValueError(
+            "Config file is missing some SFMC datasets attributes "
+            f"or has empty value: {missing_datasets_attrs} ")
+
+    source = cfg["projectIdSource"]
+    target = cfg["projectIdTarget"]
+    location = cfg["location"]
+    buckets = [resource_validation_helper.BucketConstraints(
+        sfmc["fileTransferBucket"], True, location
+    )]
+    datasets = [
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["raw"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{source}.{datasets["cdc"]}',
+            True, True, location),
+        resource_validation_helper.DatasetConstraints(
+            f'{target}.{datasets["reporting"]}',
+            False, True, location)
+        ]
+    if not resource_validation_helper.validate_resources(buckets, datasets):
+        raise ValueError("Resource validation failed.")
+
+    logging.info("Config file validated for SFMC and is looking good.")
+
+
 def validate(cfg: dict) -> Union[dict, None]:
     """Validates and processes configuration.
 
@@ -234,7 +335,8 @@ def validate(cfg: dict) -> Union[dict, None]:
     # Marketing Attributes
     missing_marketing_attr = []
     for attr in ("deployGoogleAds", "deployCM360", "deployTikTok",
-                 "deployLiveRamp", "dataflowRegion"):
+                 "deployLiveRamp", "deployMeta", "deploySFMC",
+                 "dataflowRegion"):
         if marketing.get(attr) is None or marketing.get(attr) == "":
             missing_marketing_attr.append(attr)
 
@@ -325,6 +427,48 @@ def validate(cfg: dict) -> Union[dict, None]:
                 return None
             except Exception as e:  # pylint: disable=broad-except
                 logging.error("🛑 LiveRamp config validation failed. 🛑")
+                logging.error(e)
+                return None
+
+    # Meta
+    deploy_meta = marketing.get("deployMeta")
+    if deploy_meta:
+        meta = marketing.get("Meta")
+        if not meta:
+            logging.error(
+                "🛑 Missing 'marketing' 'Meta' attribute "
+                "in the config file. 🛑")
+            return None
+        else:
+            try:
+                _validate_meta(cfg)
+            except ValueError as e:
+                logging.error("🛑 Meta config validation failed: %s 🛑",
+                              str(e))
+                return None
+            except Exception as e:  # pylint: disable=broad-except
+                logging.error("🛑 Meta config validation failed. 🛑")
+                logging.error(e)
+                return None
+
+    # SFMC
+    deploy_sfmc = marketing.get("deploySFMC")
+    if deploy_sfmc:
+        sfmc = marketing.get("SFMC")
+        if not sfmc:
+            logging.error(
+                "🛑 Missing 'marketing' 'SFMC' attribute "
+                "in the config file. 🛑")
+            return None
+        else:
+            try:
+                _validate_sfmc(cfg)
+            except ValueError as e:
+                logging.error("🛑 SFMC config validation failed: %s 🛑",
+                              str(e))
+                return None
+            except Exception as e:  # pylint: disable=broad-except
+                logging.error("🛑 SFMC config validation failed. 🛑")
                 logging.error(e)
                 return None
 

@@ -106,7 +106,7 @@ def main():
     logging.info("Copying schema files...")
     shutil.copytree(src=SCHEMA_DIR, dst=SCHEMAS_OUTPUT_DIR, dirs_exist_ok=True)
 
-    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    now_date = datetime.datetime.utcnow().date()
     client = Client(project=RAW_PROJECT)
 
     if not "source_to_raw_tables" in SETTINGS:
@@ -179,8 +179,8 @@ def main():
                 load_frequency,
             "is_metrics_table":
                 is_metrics_table,
-            "start_datetime":
-                now.isoformat(),
+            "start_date":
+                now_date,
             "lookback_days":
                 LOOKBACK_DAYS,
             "schema_file":
