@@ -40,7 +40,7 @@ _SOURCE_CONFIG = _PROJECT_CONFIG["marketing"]["TikTok"]
 
 POPULATE_TEST_DATA = _PROJECT_CONFIG["testData"]
 
-SCHEMA_DIR = Path(_CURRENT_DIR, "table_schema")
+SCHEMA_DIR = Path(_CURRENT_DIR.parent, "config", "table_schema")
 
 RAW_PROJECT = _PROJECT_CONFIG["projectIdSource"]
 RAW_DATASET = _SOURCE_CONFIG["datasets"]["raw"]

@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ def main():
 
         # Making sure all required setting attributes are provided.
         missing_raw_setting_attr = []
-        for attr in ("load_frequency", "key", "is_metrics_table", "api_name",
+        for attr in ("load_frequency", "key", "resource_type", "api_name",
                      "schema_file", "table_name"):
             if raw_table_settings.get(attr) is None or raw_table_settings.get(
                     attr) == "":
@@ -133,8 +133,8 @@ def main():
                 f"attributes: {missing_raw_setting_attr} ")
 
         load_frequency = raw_table_settings.get("load_frequency")
-        key_fields = raw_table_settings.get("key")
-        is_metrics_table = raw_table_settings.get("is_metrics_table")
+        key_fields = raw_table_settings.get("key").split(",")
+        resource_type = raw_table_settings.get("resource_type")
         api_name = raw_table_settings.get("api_name")
         schema_file = raw_table_settings.get("schema_file")
         table_name = raw_table_settings.get("table_name")
@@ -177,8 +177,8 @@ def main():
                 table_name,
             "load_frequency":
                 load_frequency,
-            "is_metrics_table":
-                is_metrics_table,
+            "resource_type":
+                resource_type,
             "start_date":
                 now_date,
             "lookback_days":

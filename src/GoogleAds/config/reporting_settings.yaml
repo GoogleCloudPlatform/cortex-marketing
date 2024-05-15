@@ -25,7 +25,13 @@ bq_independent_objects:
     type: view
   - sql_file: src/GoogleAds/src/reporting/ddls/CustomerUserAccess.sql
     type: view
-  - sql_file: src/GoogleAds/src/reporting/ddls/Keywords.sql
+  - sql_file: src/GoogleAds/src/reporting/ddls/KeywordStats.sql
+    type: view
+  - sql_file: src/GoogleAds/src/reporting/ddls/CampaignStats.sql
+    type: view
+  - sql_file: src/GoogleAds/src/reporting/ddls/CampaignStatsByUserCountry.sql
+    type: view
+  - sql_file: src/GoogleAds/src/reporting/ddls/GeoTargetConstant.sql
     type: view
 
 bq_dependent_objects:
@@ -39,3 +45,21 @@ bq_dependent_objects:
         time_grain: "day"
       }
       cluster_details: {columns: ["customer_id", "campaign_id"]}
+  - sql_file: src/GoogleAds/src/reporting/ddls/CampaignDailyAgg.sql
+    type: table
+    table_setting:
+      load_frequency: "@daily"
+      partition_details: {
+        column: "report_date",
+        partition_type: "time",
+        time_grain: "day"
+      }
+  - sql_file: src/GoogleAds/src/reporting/ddls/CampaignDailyAggByUserCountry.sql
+    type: table
+    table_setting:
+      load_frequency: "@daily"
+      partition_details: {
+        column: "report_date",
+        partition_type: "time",
+        time_grain: "day"
+      }

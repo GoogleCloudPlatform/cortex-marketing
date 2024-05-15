@@ -19,6 +19,11 @@ from pathlib import Path
 from google.cloud.bigquery import SchemaField
 
 
+def _sanitize_sql_str(sql: str) -> str:
+    return sql.replace('"','').replace('\\','').replace(", '",', ').\
+        replace("', ",', ').replace('|','"')
+
+
 def generate_schema(schema_file: Path, bq_type: str) -> dict:
     """Creates dictionary format schema from csv mapping.
 
@@ -81,20 +86,18 @@ def convert_to_bq_schema(schema: dict) -> list[SchemaField]:
     return fields
 
 
-def generate_sql(schema: dict) -> str:
-    """Creates SQL statement from dictionary schema.
+def generate_column_list(schema: dict) -> list[str]:
+    """Creates a list of SQL statements from dictionary schema
+        which will be used to select the columns from BigQuery
 
     Args:
         schema: Schema in dictionary format.
+
+    Returns:
+        list[str]: list of sql statements for columns
     """
-    extra_columns = 'recordstamp'
-    result = generate_code(schema)
-    stmt_columns = ''
-    for item in result:
-        item =  item.replace('"','').replace('\\','').replace(", '",', ').\
-            replace("', ",', ').replace('|','"')
-        stmt_columns = stmt_columns + item + ',' + '\n    '
-    columns = stmt_columns + extra_columns
+    columns = [_sanitize_sql_str(column) for column in generate_code(schema)]
+    columns.append('recordstamp')
     return columns
 
 
@@ -102,7 +105,7 @@ def generate_code(schema: dict,
                   level=0,
                   root_item='',
                   nested_item='',
-                  domains=None):
+                  domains=None) -> list[str]:
     """Generate SQL transformations of nested columns from dictionary schema.
 
     Args:
@@ -110,6 +113,9 @@ def generate_code(schema: dict,
         global_level: Level of column in schema.
         root_item: Root item for current item.
         nested_item: Nested item for current item
+
+    Returns:
+        list[str]: list of sql statements for columns
     """
     fields = []
     if domains is None:

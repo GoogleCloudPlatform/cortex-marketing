@@ -20,7 +20,8 @@ setup(name="GoogleAdsBeamDependencies",
       description="Python Apache Beam pipeline dependencies",
       install_requires=[
           "google-ads==23.0.0",
-          "google-cloud-secret-manager==2.16.3"
+          "google-cloud-secret-manager==2.16.3",
+          "pyyaml"
       ],
       author="Google Cloud Cortex",
       author_email="cortex-support@google.com",

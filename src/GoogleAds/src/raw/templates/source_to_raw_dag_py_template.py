@@ -56,7 +56,7 @@ beam_pipeline_params = {
     "tgt_table": _TABLE_NAME,
     "mapping_file": str(Path(_THIS_DIR, "${schemas_dir}", "${schema_file}")),
     "lookback_days": "${lookback_days}",
-    "is_metric_table": "${is_metrics_table}",
+    "resource_type": "${resource_type}",
     "setup_file": str(Path(_THIS_DIR, "${pipeline_setup}")),
     "tempLocation": "${pipeline_temp_location}",
     "stagingLocation": "${pipeline_staging_location}"

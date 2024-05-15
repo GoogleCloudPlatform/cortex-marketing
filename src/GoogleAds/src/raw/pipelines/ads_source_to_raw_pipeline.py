@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -64,9 +64,9 @@ class ArgumentOptions(PipelineOptions):
             required=True,
             type=int,
             help="Number of past days to fetch data for Metrics table")
-        parser.add_argument("--is_metric_table",
+        parser.add_argument("--resource_type",
                             required=True,
-                            help="Metrics table date range")
+                            help="Resource type")
 
 
 arg_parser = argparse.ArgumentParser()
@@ -85,6 +85,7 @@ bq_client = bigquery.Client()
 target_project = args.tgt_project
 target_dataset = args.tgt_dataset
 target_table = args.tgt_table
+resource_type = args.resource_type
 current_datetime = datetime.now(tz=timezone.utc)
 max_recordstamp: Optional[float] = get_max_recordstamp(bq_client,
                                                        target_project,
@@ -95,7 +96,7 @@ max_recordstamp: Optional[float] = get_max_recordstamp(bq_client,
 credentials: dict = get_credentials_from_secret_manager(args.tgt_project)
 
 # Metric table flag. Depends on it we can change the behaviour of processing.
-is_metric_table = args.is_metric_table.lower() == "true"
+is_metric_table = resource_type == "metric"
 
 # Getting list of columns for the API query
 select_columns = get_select_columns(args.mapping_file)
@@ -120,6 +121,15 @@ query = generate_query(select_columns,
 with beam.Pipeline(options=beam_options) as pipeline:
     clients_to_process = get_available_client_ids(credentials, args.api_version,
                                                   is_metric_table)
+
+    if not clients_to_process:
+        raise ValueError("No accessible customer ids found with the current "
+                         "credentials. Aborting.")
+
+    # Avoiding load constant data several times.
+    if resource_type == "constant":
+        clients_to_process = [clients_to_process[0]]
+
     raw_rows = (
         pipeline
         | beam.Create(clients_to_process)

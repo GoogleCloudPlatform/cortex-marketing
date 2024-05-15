@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@ from datetime import date
 from datetime import datetime
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Optional
 
 from dateutil import parser
 from google.ads.googleads.client import GoogleAdsClient
+from google.ads.googleads.errors import GoogleAdsException
 from google.cloud import secretmanager
 from google.cloud.bigquery import Client
 from google.protobuf import json_format
@@ -40,6 +41,11 @@ _SERVICE_COLUMNS: Dict = {
     _TARGET_FIELD: _RECORDSTAMP_COLUMN,
     _BQ_DATATYPE_FIELD: "TIMESTAMP"
 }
+
+
+class _Customer(NamedTuple):
+    customer_id: str
+    login_customer_id: str
 
 
 def _cast_to_date(date_string: str) -> date:
@@ -84,8 +90,92 @@ class _ColumnMapping:
             return None
 
 
+def _list_accessible_client_ids(credentials: Dict,
+                                api_version: str) -> Iterable[str]:
+    """List all top level customer ids that are accessible
+    to the current credentials.
+
+    Args:
+        credentials (Dict): Contains client_token, client_secret, refresh_token,
+                      client_id.
+        api_version (str): Google Ads API version (for example: 'v15').
+    Yield:
+        List of accessible customer_ids.
+    """
+
+    googleads_client = GoogleAdsClient.load_from_dict(credentials,
+                                                      version=api_version)
+
+    customer_service = googleads_client.get_service("CustomerService")
+    customer_resource_names = (
+        customer_service.list_accessible_customers().resource_names)
+
+    for customer_resource_name in customer_resource_names:
+        customer_id = customer_service.parse_customer_path(
+            customer_resource_name)["customer_id"]
+        yield customer_id
+
+
+def _get_child_customer_ids(credentials: Dict, api_version: str,
+                            login_customer_id: str,
+                            is_metric_table: bool) -> Iterable[str]:
+    """Get details for the current customer and any managed customers
+    (if current account is a Manager account).
+
+    Args:
+        credentials (Dict): Contains client_token, client_secret, refresh_token,
+                      client_id.
+        api_version (str): Google Ads API version (for example: 'v15').
+        login_customer_id (str): Id of the processing Google Ads account.
+        is_metric_table (bool): Type of data which be retrieved.
+    Yields:
+        customer_ids for auto discovered accounts.
+    """
+
+    credentials["login_customer_id"] = login_customer_id
+
+    googleads_client = GoogleAdsClient.load_from_dict(credentials,
+                                                      version=api_version)
+    customer_service = googleads_client.get_service("GoogleAdsService")
+    query = ("SELECT "
+             "    customer_client.id, "
+             "    customer_client.status, "
+             "    customer_client.manager "
+             " FROM customer_client "
+             " WHERE customer_client.status IN ('ENABLED')"
+             "   AND customer_client.test_account = FALSE")
+
+    try:
+        stream = customer_service.search_stream(customer_id=login_customer_id,
+                                                query=query)
+
+    # The above call fails if the customer is Cancelled, even when the filter
+    # is applied. So we need to catch this error explicitly.
+    except GoogleAdsException as ex:
+        customer_not_enabled = googleads_client.get_type(
+            "AuthorizationErrorEnum").AuthorizationError.CUSTOMER_NOT_ENABLED
+
+        for googleads_error in ex.failure.errors:
+            auth_error_code = googleads_error.error_code.authorization_error
+            if auth_error_code == customer_not_enabled:
+                logging.warning(
+                    "Customer %s is not enabled or has been deactivated. "
+                    "Skipping it.", login_customer_id)
+                return []
+
+        raise ex
+
+    for batch in stream:
+        for result_row in batch.results:
+            customer = result_row.customer_client
+            # Manager accounts can not get metrics data. Excluding them.
+            if customer.manager and is_metric_table:
+                continue
+            yield str(customer.id)
+
+
 def get_available_client_ids(credentials: Dict, api_version: str,
-                             is_metric_table: bool) -> List:
+                             is_metric_table: bool) -> List[_Customer]:
     """Getting list of active accounts for the given client.
 
     Args:
@@ -93,34 +183,26 @@ def get_available_client_ids(credentials: Dict, api_version: str,
                       client_id.
         api_version (str): Google Ads API version (for example: 'v13').
         is_metric_table (bool): Type of data which be retrieved.
+    Returns:
+        List of pairs of customer_ids and login_customer_ids.
     """
-    googleads_client = GoogleAdsClient.load_from_dict(credentials,
-                                                      version=api_version)
-    customer_service = googleads_client.get_service("GoogleAdsService")
-    query = ("SELECT "
-             "    customer_client.id, "
-             "    customer_client.status, "
-             "    customer_client.test_account, "
-             "    customer_client.manager "
-             " FROM customer_client "
-             " WHERE customer_client.status IN ('ENABLED')"
-             "   AND customer_client.test_account = FALSE")
-    login_customer_id = credentials["login_customer_id"]
-    stream = customer_service.search_stream(customer_id=login_customer_id,
-                                            query=query)
+
     accessible_customer_ids = []
-    for batch in stream:
-        for customer_client in batch.results:
-            customer_message = json.loads(
-                json_format.MessageToJson(customer_client))
-            customer = customer_message["customerClient"]
-            if not is_metric_table:
-                accessible_customer_ids.append(customer["id"])
-            # Manager is not getting metrics data. Excluding them.
-            elif is_metric_table and not customer["manager"]:
-                accessible_customer_ids.append(customer["id"])
-            else:
-                continue
+
+    # Set for the deduplication.
+    discovered_customer_ids = set()
+
+    login_customer_ids = _list_accessible_client_ids(credentials, api_version)
+    for login_customer_id in login_customer_ids:
+        customer_ids = _get_child_customer_ids(credentials, api_version,
+                                               login_customer_id,
+                                               is_metric_table)
+        for customer_id in customer_ids:
+            if customer_id not in discovered_customer_ids:
+                discovered_customer_ids.add(customer_id)
+                accessible_customer_ids.append(
+                    _Customer(customer_id, login_customer_id))
+
     return accessible_customer_ids
 
 
@@ -288,13 +370,14 @@ def get_credentials_from_secret_manager(
     return credentials
 
 
-def get_data_for_customer(customer_id: str, credentials: Dict, api_version: str,
-                          query: str, timestamp: float, api_name: str,
-                          is_metric_table: bool):
+def get_data_for_customer(customer: _Customer, credentials: Dict,
+                          api_version: str, query: str, timestamp: float,
+                          api_name: str, is_metric_table: bool):
     """Send request and gets data from the Google Ads API.
 
     Args:
-        customer_id (str): For which customers ID we getting data.
+        customer (NamedTuple): For which customers we getting data. Consist of
+                     customer id and corresponding login_customer_id.
         credentials (Dict): access token and secret for Google Ads API.
         api_version (str): API version (e.g. 'v13').
         query (str): query to request the data.
@@ -306,10 +389,14 @@ def get_data_for_customer(customer_id: str, credentials: Dict, api_version: str,
     Yields:
         Customers requested data formatted as dictionary.
     """
+
+    credentials["login_customer_id"] = customer.login_customer_id
+
     ads_client = GoogleAdsClient.load_from_dict(credentials,
                                                 version=api_version)
     ads_service = ads_client.get_service("GoogleAdsService")
-    stream = ads_service.search_stream(customer_id=customer_id, query=query)
+    stream = ads_service.search_stream(customer_id=customer.customer_id,
+                                       query=query)
     for batch in stream:
         for row in batch.results:
             json_str = json_format.MessageToJson(
