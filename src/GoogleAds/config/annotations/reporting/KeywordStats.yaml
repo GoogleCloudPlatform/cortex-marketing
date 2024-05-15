@@ -1,4 +1,4 @@
-name: "{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.Keywords"
+name: "{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.KeywordStats"
 description: "Keywords metrics"
 fields:
   - name: "segments"

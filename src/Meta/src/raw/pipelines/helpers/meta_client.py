@@ -23,9 +23,6 @@ import requests
 from requests.exceptions import RequestException
 
 _OBJECTS_PER_PAGE = 100
-# CORTEX-CUSTOMER: If you have Standard access to Meta Marketing API,
-# consider lowering this value to 0.1 to increase the number of requests.
-_NEXT_REQUEST_DELAY_SEC = 1
 # As insights are requested with one-day interval,
 # date_stop column can be taken as insights date.
 _DATE_STOP_COLUMN = "date_stop"
@@ -43,15 +40,17 @@ class MetaClient():
 
     _REQUEST_LIMIT_ERROR_CODES = [17, 80000]
 
-    def __init__(self, access_token: str, http_timeout: int, api_version: str):
+    def __init__(self, access_token: str, http_timeout: int,
+                 next_request_delay_sec: float, api_version: str):
         self._access_token = access_token
         self._http_timeout = http_timeout
+        self._next_request_delay_sec = next_request_delay_sec
         self.base_url = f"https://graph.facebook.com/{api_version}"
 
-    def _request(self,
-                 url: str,
-                 params: Optional[Dict[str, str]] = None
-                 ) ->  List[Dict[str, Any]]:
+    def _request(
+            self,
+            url: str,
+            params: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
         """Makes HTTP request to Meta API.
 
         Args:
@@ -81,15 +80,13 @@ class MetaClient():
 
             error_data = resp.json()
             if (resp.status_code == 400 and error_data["error"]["code"]
-                    in self._REQUEST_LIMIT_ERROR_CODES
-               ):
+                    in self._REQUEST_LIMIT_ERROR_CODES):
                 logging.error("Request limit has been reached. " +
-                             "Data load has been aborted. " +
-                             "Persisting data to the BQ.")
+                              "Data load has been aborted. " +
+                              "Persisting data to the BQ.")
                 raise RequestLimitReachedError()
             else:
                 raise RequestException(resp.status_code, resp.text)
-
 
     def request_dim_data(self, account_id: str, endpoint: str,
                          fields: Iterable[str]):
@@ -147,7 +144,7 @@ class MetaClient():
                     yield ad_object
                 return
             # Requesting next page with delay.
-            sleep(_NEXT_REQUEST_DELAY_SEC)
+            sleep(self._next_request_delay_sec)
             try:
                 # Sending http request.
                 next_url = response["paging"]["next"]
@@ -157,8 +154,7 @@ class MetaClient():
                 # Last batch is dropped as it could be loaded partially.
                 return
 
-    def request_fact_data(self,
-                          id_and_load_range: Tuple[str, date, date],
+    def request_fact_data(self, id_and_load_range: Tuple[str, date, date],
                           fields: Iterable[str], breakdowns: Optional[str],
                           action_breakdowns: Optional[str],
                           days_per_request: int):
@@ -209,8 +205,10 @@ class MetaClient():
             end_date = min(start_date + timedelta(days=days_per_request - 1),
                            last_date)
             # Setting up API parameters.
-            time_range = str({"since": start_date.isoformat(),
-                              "until": end_date.isoformat()})
+            time_range = str({
+                "since": start_date.isoformat(),
+                "until": end_date.isoformat()
+            })
             params["time_range"] = time_range
             params["time_increment"] = 1
 
@@ -244,7 +242,7 @@ class MetaClient():
                         yield ad_object
                     break
                 # Requesting next page with delay.
-                sleep(_NEXT_REQUEST_DELAY_SEC)
+                sleep(self._next_request_delay_sec)
                 try:
                     # Sending http request.
                     next_url = response["paging"]["next"]
@@ -259,7 +257,7 @@ class MetaClient():
 
             start_date = end_date + timedelta(days=1)
             # Requesting next date range with delay.
-            sleep(_NEXT_REQUEST_DELAY_SEC)
+            sleep(self._next_request_delay_sec)
 
 
 class RequestLimitReachedError(Exception):

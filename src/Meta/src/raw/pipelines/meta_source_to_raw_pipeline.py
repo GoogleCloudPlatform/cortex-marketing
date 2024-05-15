@@ -83,11 +83,24 @@ class MetaRawLayerOptions(PipelineOptions):
         parser.add_argument("--batch_size",
                             required=False,
                             type=int,
+                            default=7,
                             help="Days per request.")
+        parser.add_argument(
+            "--next_request_delay_sec",
+            required=False,
+            type=float,
+            default=1.0,
+            help="The delay between two Meta API calls in seconds.")
         parser.add_argument("--api_version",
                             required=True,
                             type=str,
                             help="Meta Marketing API version.")
+        parser.add_argument(
+            "--max_load_lookback_days",
+            required=False,
+            type=int,
+            help="Maximum number of look back days for data loading.")
+
 
 def run_pipeline():
     args = PipelineOptions().view_as(MetaRawLayerOptions)
@@ -109,6 +122,7 @@ def run_pipeline():
 
         meta_client = MetaClient(access_token,
                                 args.http_timeout,
+                                args.next_request_delay_sec,
                                 args.api_version)
 
         if args.entity_type == "adaccount":
@@ -136,7 +150,9 @@ def run_pipeline():
                                 args.tgt_dataset, args.tgt_table,
                                 args.object_endpoint, args.object_id_column,
                                 args.breakdowns, args.action_breakdowns,
-                                args.batch_size, request_fields, field_mapping)
+                                args.batch_size,
+                                args.max_load_lookback_days,
+                                request_fields, field_mapping)
         else:
             raise ValueError(f"Unknown entity type: {args.entity_type}")
 
@@ -206,6 +222,7 @@ def _run_fact_pipeline(pipeline: beam.Pipeline, meta_client: MetaClient,
                         project: str, dataset: str, table: str,
                         endpoint: str, id_column: str, breakdowns: str,
                         action_breakdowns: str, batch_size: int,
+                        max_load_lookback_days: int,
                         request_fields: List[str],
                         field_mapping: Dict[str, str]):
     """This dataflow pipeline loads data for Cortex Marketing workload
@@ -226,7 +243,8 @@ def _run_fact_pipeline(pipeline: beam.Pipeline, meta_client: MetaClient,
             beam.Map(lambda ad_object: ad_object["id"])
 
         | "Calculate first load date for each ad object id" >>
-            beam.Map(get_first_load_date, project, dataset, table, id_column)
+            beam.Map(get_first_load_date, project, dataset, table, id_column,
+                    max_load_lookback_days)
 
         | "Request insights for each ad object id" >>
             beam.FlatMap(meta_client.request_fact_data, request_fields,

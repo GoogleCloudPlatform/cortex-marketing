@@ -43,7 +43,14 @@ execution_retry_count = config.getint("meta",
                                       fallback=3)
 batch_size_days = config.getint("meta", "batch_size_days", fallback=7)
 http_timeout = config.getint("meta", "http_timeout_sec", fallback=60)
+next_request_delay_sec = config.getfloat("meta",
+                                         "next_request_delay_sec",
+                                         fallback=1.0)
 api_version = config.get("meta", "api_version", fallback="v19.0")
+
+max_load_lookback_days = config.get("meta",
+                                    "max_load_lookback_days",
+                                    fallback=366)
 
 _IDENTIFIER = ("meta_"
                f"{_PROJECT_ID}_{_DATASET_ID}_extract_to_raw_{_TABLE_NAME}")
@@ -81,7 +88,7 @@ beam_pipeline_params = {
     "mapping_file":
         str(Path(_CURRENT_DIR, "${schemas_dir}", f"{_TABLE_NAME}.csv")),
     "request_file":
-        str(Path(_CURRENT_DIR, "${requests_dir}", f"{_TABLE_NAME}.request")),
+        str(Path(_CURRENT_DIR, "${requests_dir}", f"{_TABLE_NAME}.yaml")),
     "entity_type":
         "${entity_type}",
     "object_endpoint":
@@ -96,8 +103,12 @@ beam_pipeline_params = {
         batch_size_days,
     "http_timeout":
         http_timeout,
+    "next_request_delay_sec":
+        next_request_delay_sec,
     "api_version":
-        api_version
+        api_version,
+    "max_load_lookback_days":
+        max_load_lookback_days
 }
 
 _DATAFLOW_CONFIG = {
@@ -112,21 +123,32 @@ _DATAFLOW_CONFIG = {
 }
 
 _BEAM_OPERATOR_CONFIG = {
-    "task_id": _IDENTIFIER,
-    "runner": "DataflowRunner",
-    "py_file": str(Path(_CURRENT_DIR,
-                        "pipelines", "meta_source_to_raw_pipeline.py")),
-    "pipeline_options": beam_pipeline_params,
-    "py_system_site_packages": False,
-    "dataflow_config": DataflowConfiguration(**_DATAFLOW_CONFIG),
-    "gcp_conn_id": _GCP_CONN_ID,
+    "task_id":
+        _IDENTIFIER,
+    "runner":
+        "DataflowRunner",
+    "py_file":
+        str(Path(_CURRENT_DIR, "pipelines", "meta_source_to_raw_pipeline.py")),
+    "pipeline_options":
+        beam_pipeline_params,
+    "py_system_site_packages":
+        False,
+    "dataflow_config":
+        DataflowConfiguration(**_DATAFLOW_CONFIG),
+    "gcp_conn_id":
+        _GCP_CONN_ID,
     "py_requirements": [
-        "apache-beam[gcp]==2.53.0", "google-cloud-secret-manager", "requests"
+        "apache-beam[gcp]==2.53.0", "google-cloud-secret-manager", "requests",
+        "pyyaml"
     ],
-    "retry_exponential_backoff": True,
-    "retry_delay": timedelta(seconds=retry_delay_sec),
-    "max_retry_delay": timedelta(seconds=max_retry_delay_sec),
-    "retries": execution_retry_count,
+    "retry_exponential_backoff":
+        True,
+    "retry_delay":
+        timedelta(seconds=retry_delay_sec),
+    "max_retry_delay":
+        timedelta(seconds=max_retry_delay_sec),
+    "retries":
+        execution_retry_count,
 }
 
 if AIRFLOW_VERSION.startswith("1."):

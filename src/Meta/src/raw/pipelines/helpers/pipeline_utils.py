@@ -14,6 +14,7 @@
 """Utility functions for Meta pipeline."""
 
 import csv
+import yaml
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
@@ -33,11 +34,7 @@ _REPORT_DATE_COLUMN = "report_date"
 # As insights are requested with one-day interval,
 # date_stop column can be taken as report date.
 _DATE_STOP_COLUMN = "date_stop"
-# Maximum date range to be extracted.
-## CORTEX-CUSTOMER:
-# By default max load period is last 365 days starting from previous day.
-# This can be modified according to customer needs.
-_EARLIEST_LOAD_DATE = date.today() - timedelta(days=366)
+
 _LATEST_LOAD_DATE = date.today() - timedelta(days=1)
 _META_UPDATE_WINDOW_DAYS = 28  # Period when insights can be updated by Meta.
 
@@ -62,10 +59,29 @@ def process_output_objects(ad_object: Dict[str, Any],
     return result_object
 
 
+def _parse_dict_to_meta_fields(config_object:Dict[str, Any]) -> List[str]:
+    """Converts Python string representation to Meta field representation."""
+    fields_list = []
+    for key, value in config_object.items():
+        if isinstance(value, dict):
+            nested_keys = ",".join(_parse_dict_to_meta_fields(value))
+            fields_list.append(f"{key}{{{nested_keys}}}")
+        else:
+            fields_list.append(key)
+
+    return fields_list
+
+
 def read_request_fields(path_to_settings: str) -> List[str]:
     """Gets list of required fields from request file."""
-    with open(path_to_settings, mode="r", encoding="utf-8", newline="") as f:
-        return [row.rstrip() for row in f if len(row) > 0]
+    with open(path_to_settings, mode="r", encoding="utf-8") as request_file:
+        request_config = yaml.load(request_file, Loader=yaml.SafeLoader)
+        if request_config:
+            request_fields = _parse_dict_to_meta_fields(request_config)
+        else:
+            raise RuntimeError(f"ERROR: File '{request_file}' is empty. "
+                     "Make sure the file exists with correct content.")
+        return request_fields
 
 
 def read_field_mapping(path_to_mapping: str) -> Dict[str, str]:
@@ -140,7 +156,7 @@ def _get_max_date_for_object(column_name: str, object_id: str, project: str,
 
 
 def get_first_load_date(object_id: str, project: str, dataset: str, table: str,
-                        object_id_column: str):
+                        object_id_column: str, max_load_lookback_days: int):
     """Calculates first load date based on the last load date
     requested from the given table for the particular object.
 
@@ -162,9 +178,12 @@ def get_first_load_date(object_id: str, project: str, dataset: str, table: str,
                                                   object_id, project, dataset,
                                                   table, object_id_column)
 
+    earliest_load_date = _LATEST_LOAD_DATE - timedelta(
+        days=max_load_lookback_days)
+
     if not latest_report_date:
         # No loads yet, request last year.
-        load_start_date = _EARLIEST_LOAD_DATE
+        load_start_date = earliest_load_date
     else:
 
         if not latest_insert_date:
@@ -173,7 +192,7 @@ def get_first_load_date(object_id: str, project: str, dataset: str, table: str,
             # We need to update only 28 days before the date of the latest run.
             meta_update_window_days = min(
                 max((latest_report_date - latest_insert_date +
-                     timedelta(days=_META_UPDATE_WINDOW_DAYS)).days, 0),
+                     timedelta(days=_META_UPDATE_WINDOW_DAYS)).days, -1),
                 _META_UPDATE_WINDOW_DAYS)
 
         # Load start date is 28 days before the last successful load date.
@@ -181,7 +200,7 @@ def get_first_load_date(object_id: str, project: str, dataset: str, table: str,
         # Also make sure it doesn't go past the earliest load date.
         load_start_date = max(
             latest_report_date - timedelta(days=meta_update_window_days),
-            _EARLIEST_LOAD_DATE)
+            earliest_load_date)
 
     logging.info("%s %s: Extracting period: from %s until %s.",
                  object_id_column, object_id, load_start_date.isoformat(),

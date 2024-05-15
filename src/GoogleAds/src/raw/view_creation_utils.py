@@ -20,7 +20,7 @@ from common.py_libs.bq_helper import table_exists
 from google.cloud.bigquery import Client
 
 from src.py_libs.schema_generator import generate_schema
-from src.py_libs.schema_generator import generate_sql
+from src.py_libs.schema_generator import generate_column_list
 from src.py_libs.sql_generator import render_template_file
 from src.raw.constants import SQL_TEMPLATE_FILE
 
@@ -33,7 +33,7 @@ def execute_sql_file(client: Client, sql_code: str):
 
 
 def create_view(client: Client, table_mapping_path: Path, table_name: str,
-                raw_project: str, raw_dataset: str, key_fields: str):
+                raw_project: str, raw_dataset: str, key_fields: list[str]):
     """For a given table config, creates required view SQL,
     and if the raw table exists, executes the SQL.
     """
@@ -41,7 +41,6 @@ def create_view(client: Client, table_mapping_path: Path, table_name: str,
 
     source_table = raw_project + "." + raw_dataset + "." + table_name
     target_view = raw_project + "." + raw_dataset + "." + table_name + "_view"
-    key_list = key_fields.split(",")
 
     # Check if raw table exists.
     raw_exists = table_exists(bq_client=client, full_table_name=source_table)
@@ -54,17 +53,15 @@ def create_view(client: Client, table_mapping_path: Path, table_name: str,
     # Generate dictionary schema from mapping file.
     schema = generate_schema(table_mapping_path, "view")
 
-    # Generate SQL statement for fields extraction from raw table.
-    field_assignments = generate_sql(schema)
-
-    key_clause = " AND ".join([f"S1.{key}=S2.{key}" for key in key_list])
+    # Generate a list of SQL statements for fields extraction from raw table.
+    columns = generate_column_list(schema)
 
     template_vals = {
         "project_id_src": raw_project,
         "dataset_raw_landing_marketing_googleads": raw_dataset,
         "raw_view": table_name + "_view",
-        "columns": field_assignments,
-        "row_identifiers": key_clause,
+        "columns": columns,
+        "row_identifiers": key_fields,
         "raw_table": table_name
     }
 
