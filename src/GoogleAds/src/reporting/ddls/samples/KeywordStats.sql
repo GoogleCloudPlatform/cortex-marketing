@@ -12,10 +12,10 @@
 # -- See the License for the specific language governing permissions and
 # -- limitations under the License.
 
-/* Sample script for keywords reporting directly from Keywords tables.
+/* Sample script for keywords reporting directly from KeywordStats tables.
 
-This is a sample script showing how to directly use the Keywords table that contain pre-aggregated
-measures as reported by Google Adwords reporting API.
+This is a sample script showing how to directly use the KeywordStats table that contain
+pre-aggregated measures as reported by Google Ads reporting API.
 
 Some of the measures are non-additive and hence should not be aggregated directly further.
 Instead such fields should be aggregated and calculated by using the underlying core additive
@@ -42,7 +42,7 @@ SELECT
   Adgroups.adgroup_id,
   Adgroups.name AS ad_group,
   KeywordStats.metrics.clicks,
-  KeywordStats.average_cpc / 1000000 AS average_cpc,
+  KeywordStats.metrics.average_cpc / 1000000 AS average_cpc,
   Criterion.quality_info.quality_score,
   KeywordStats.metrics.all_conversions,
   KeywordStats.metrics.cost_per_conversion / 1000000 AS cost_per_conversion,
@@ -55,16 +55,16 @@ INNER JOIN
   `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.AdGroupCriterion`
     AS Criterion
   ON
-    Criterion.criterion_id = Keywords.ad_group_criterion.criterion_id
-    AND Criterion.adgroup_id = Keywords.ad_group.id
+    Criterion.criterion_id = KeywordStats.ad_group_criterion.criterion_id
+    AND Criterion.adgroup_id = KeywordStats.ad_group.id
     AND Criterion.type_ = 'KEYWORD'
 INNER JOIN
   `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.Campaigns`
     AS Campaigns
-  ON Campaigns.campaign_id = Keywords.campaign.id
+  ON Campaigns.campaign_id = KeywordStats.campaign.id
 INNER JOIN `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.AdGroups` AS Adgroups
-  ON Adgroups.adgroup_id = Keywords.ad_group.id
+  ON Adgroups.adgroup_id = KeywordStats.ad_group.id
 INNER JOIN
   `{{ project_id_tgt }}.{{ marketing_googleads_datasets_reporting }}.Customers`
     AS Customers
-  ON Customers.customer_id = Keywords.customer.id
+  ON Customers.customer_id = KeywordStats.customer.id
